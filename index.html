@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wedding Invite</title>
+
+<style>
+body {
+  margin:0;
+  font-family: serif;
+  background:#0e0a07;
+  color:#fff;
+  text-align:center;
+}
+
+/* INTRO */
+#intro{
+  position:fixed;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  background:#0e0a07;
+  z-index:10;
+}
+#intro.out{
+  opacity:0;
+  pointer-events:none;
+  transition:1s;
+}
+
+#enter-btn{
+  padding:14px 30px;
+  margin-top:20px;
+  border:1px solid gold;
+  background:transparent;
+  color:gold;
+  cursor:pointer;
+}
+
+/* SITE */
+#site{display:none;}
+#site.show{display:block;}
+
+section{
+  padding:80px 20px;
+}
+
+.h-quote{
+  margin-top:20px;
+  font-style:italic;
+  color:#d4b06a;
+}
+
+/* MUSIC BUTTON */
+#mtgl{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  width:50px;
+  height:50px;
+  background:#6b1a2a;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  cursor:pointer;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- INTRO -->
+<div id="intro">
+  <h2>Wedding Invitation</h2>
+
+  <input id="guestName" placeholder="Enter your name" style="padding:10px;text-align:center;">
+
+  <button id="enter-btn" onclick="enterSite()">Enter</button>
+</div>
+
+<!-- AUDIO -->
+<audio id="bgm" loop preload="auto" playsinline>
+  <source src="https://akhilg95.github.io/Wedding-Invite/music.mp3" type="audio/mpeg">
+</audio>
+
+<audio id="ambience" loop preload="auto" playsinline>
+  <source src="https://akhilg95.github.io/Wedding-Invite/temple.mp3" type="audio/mpeg">
+</audio>
+
+<!-- MUSIC BUTTON -->
+<div id="mtgl" onclick="toggleMusic()">♪</div>
+
+<!-- MAIN -->
+<div id="site">
+
+<section id="hero">
+  <h1>Akhil & Akhila</h1>
+  <div id="personalMsg" class="h-quote"></div>
+</section>
+
+<section>
+  <h2>Wedding</h2>
+  <p>31 May 2026 · Thiruvananthapuram</p>
+</section>
+
+<section>
+  <h2>RSVP</h2>
+
+  <input id="rn" placeholder="Your Name"><br><br>
+
+  <select id="rc">
+    <option>1 Person</option>
+    <option>2 People</option>
+    <option>Family</option>
+  </select><br><br>
+
+  <button onclick="submitRSVP('Will Attend')">Will Attend</button>
+  <button onclick="submitRSVP('Will Not Attend')">Will Not Attend</button>
+
+  <div id="rsuccess" style="display:none;margin-top:20px;">
+    Thank you 🤍
+  </div>
+</section>
+
+</div>
+
+<script>
+
+/* ================= SETTINGS ================= */
+const SCRIPT_URL = "PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE";
+
+/* ================= NAME ================= */
+function getGuestName(){
+  const p = new URLSearchParams(window.location.search);
+  const n = p.get("name");
+  if(n){
+    localStorage.setItem("guestName",n);
+    return n;
+  }
+  return localStorage.getItem("guestName");
+}
+
+/* ================= ENTER ================= */
+function enterSite(){
+  const input = document.getElementById("guestName").value.trim();
+  if(input) localStorage.setItem("guestName",input);
+
+  document.getElementById("intro").classList.add("out");
+  document.getElementById("site").classList.add("show");
+
+  startAudio();
+  showName();
+}
+
+/* ================= AUDIO ================= */
+const music = document.getElementById("bgm");
+const ambience = document.getElementById("ambience");
+
+function startAudio(){
+  music.volume = 0;
+  ambience.volume = 0;
+
+  Promise.all([music.play(), ambience.play()]).then(()=>{
+    let v=0;
+    let f=setInterval(()=>{
+      v+=0.03;
+      music.volume=Math.min(v,0.5);
+      ambience.volume=Math.min(v,0.25);
+      if(v>=0.5) clearInterval(f);
+    },120);
+  });
+}
+
+function toggleMusic(){
+  if(music.paused){
+    music.play();
+  }else{
+    music.pause();
+  }
+}
+
+/* ================= NAME DISPLAY ================= */
+function showName(){
+  const name = getGuestName();
+  if(name){
+    document.getElementById("personalMsg").innerHTML =
+      "Dear "+name+", we invite you.";
+  }
+}
+
+/* ================= RSVP ================= */
+let done=false;
+
+async function submitRSVP(status){
+  if(done) return;
+
+  const name = getGuestName() || document.getElementById("rn").value.trim();
+  const count = document.getElementById("rc").value;
+
+  if(!name){
+    alert("Enter name");
+    return;
+  }
+
+  await fetch(SCRIPT_URL,{
+    method:"POST",
+    mode:"no-cors",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name,status,count})
+  });
+
+  done=true;
+  document.getElementById("rsuccess").style.display="block";
+
+  const msg = encodeURIComponent(
+    "Hello, I am "+name+". I will "+status+" for the wedding."
+  );
+
+  window.open("https://wa.me/919037467153?text="+msg,"_blank");
+}
+
+</script>
+
+</body>
+</html>
